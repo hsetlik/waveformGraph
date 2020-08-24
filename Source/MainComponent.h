@@ -9,7 +9,8 @@
     your controls and content.
 */
 class MainComponent  : public juce::AudioAppComponent,
-                       private juce::ChangeListener
+                       private juce::ChangeListener,
+                       private juce::Timer
 {
 public:
     //==============================================================================
@@ -37,6 +38,8 @@ public:
         transportSource.addChangeListener(this);
         thumbnail.addChangeListener(this);
         setAudioChannels (0, 2);
+        
+        startTimer(40);
         
     }
 
@@ -93,11 +96,16 @@ public:
         g.setColour(juce::Colours::darkgrey);
         g.fillRect(thumbnailBounds);
         g.setColour(juce::Colours::blue);
+        auto fileLength = (float) thumbnail.getTotalLength();
         thumbnail.drawChannels(g,
                                thumbnailBounds,
                                0.0,
-                               thumbnail.getTotalLength(),
+                               fileLength,
                                1.0f);
+        g.setColour(juce::Colours::green);
+        auto audioPosition = transportSource.getCurrentPosition();
+        auto drawPosition = (audioPosition / fileLength) * (float) thumbnailBounds.getWidth() + (float) thumbnailBounds.getX();
+        g.drawLine(drawPosition, (float) thumbnailBounds.getY(), drawPosition, thumbnailBounds.getBottom(), 2.0f);
     }
 
     void resized() override
@@ -185,6 +193,10 @@ private:
     void stopButtonClicked()
     {
         changeState(stopping);
+    }
+    void timerCallback() override
+    {
+        repaint();
     }
     juce::TextButton openButton;
     juce::TextButton playButton;
