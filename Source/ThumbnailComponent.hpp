@@ -11,10 +11,12 @@ class ThumbnailComponent : public juce::Component,
                            private juce::ChangeListener
 {
 public:
-    ThumbnailComponent( int sourceSamplesPerThumbnail,
+    ThumbnailComponent(int sourceSamplesPerThumbnail,
                        juce::AudioFormatManager& formatManager,
-                       juce::AudioThumbnailCache& thumbnailCache)
-    : thumbnail(sourceSamplesPerThumbnail, formatManager, thumbnailCache)
+                       juce::AudioThumbnailCache& thumbnailCache,
+                       juce::AudioTransportSource& thisTransportSource)
+    : thumbnail(sourceSamplesPerThumbnail, formatManager, thumbnailCache),
+     transportSource(thisTransportSource)
     {
         thumbnail.addChangeListener(this);
     }
@@ -25,6 +27,7 @@ public:
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 private:
     juce::AudioThumbnail thumbnail;
+    const juce::AudioTransportSource& transportSource;
     void thumbnailChanged()
     {
         repaint();

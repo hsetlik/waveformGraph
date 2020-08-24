@@ -14,7 +14,7 @@ class MainComponent  : public juce::AudioAppComponent,
 {
 public:
     //==============================================================================
-    MainComponent() : state(stopped), thumbnailCache(5), thumbnailComp(512, formatManager, thumbnailCache),
+    MainComponent() : state(stopped), thumbnailCache(5), thumbnailComp(512, formatManager, thumbnailCache, transportSource),
         playhead(transportSource)
     {
         addAndMakeVisible (&openButton);

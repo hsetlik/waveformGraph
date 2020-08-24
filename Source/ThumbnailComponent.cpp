@@ -32,7 +32,8 @@ void ThumbnailComponent::paintIfFileLoaded(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
     g.setColour(juce::Colours::lightblue);
-    thumbnail.drawChannels (g, getLocalBounds(), 0.0, thumbnail.getTotalLength(), 1.0f);
+    auto audioPosition = (double) transportSource.getCurrentPosition();
+    thumbnail.drawChannels (g, getLocalBounds(), audioPosition, audioPosition + 15, 1.0f);
 }
 void ThumbnailComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 {
