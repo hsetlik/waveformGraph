@@ -8,24 +8,23 @@
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
+//example changes 
 
 //==============================================================================
 class waveformGraphApplication  : public juce::JUCEApplication
 {
 public:
     //==============================================================================
-    waveformGraphApplication() {}
+    waveformGraphApplication() = default;
 
-    const juce::String getApplicationName() override       { return ProjectInfo::projectName; }
-    const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
-    bool moreThanOneInstanceAllowed() override             { return true; }
-
+    const juce::String getApplicationName() override       { return "Waveform Graph"; }
+    const juce::String getApplicationVersion() override    { return "1.0.0"; }
     //==============================================================================
     void initialise (const juce::String& commandLine) override
     {
         // This method is where you should put your application's initialisation code..
 
-        mainWindow.reset (new MainWindow (getApplicationName()));
+        mainWindow.reset (new MainWindow("Waveform Graph", new MainComponent, *this));
     }
 
     void shutdown() override
@@ -58,19 +57,19 @@ public:
     class MainWindow    : public juce::DocumentWindow
     {
     public:
-        MainWindow (juce::String name)
+        MainWindow (const juce::String name, juce::Component* c, JUCEApplication& a)
             : DocumentWindow (name,
                               juce::Desktop::getInstance().getDefaultLookAndFeel()
                                                           .findColour (juce::ResizableWindow::backgroundColourId),
-                              DocumentWindow::allButtons)
+                              DocumentWindow::allButtons), app(a)
         {
             setUsingNativeTitleBar (true);
-            setContentOwned (new MainComponent(), true);
+            setContentOwned (c, true);
 
            #if JUCE_IOS || JUCE_ANDROID
             setFullScreen (true);
            #else
-            setResizable (true, true);
+            setResizable (true, false);
             centreWithSize (getWidth(), getHeight());
            #endif
 
@@ -82,7 +81,7 @@ public:
             // This is called when the user tries to close this window. Here, we'll just
             // ask the app to quit when this happens, but you can change this to do
             // whatever you need.
-            JUCEApplication::getInstance()->systemRequestedQuit();
+            app.systemRequestedQuit();
         }
 
         /* Note: Be careful if you override any DocumentWindow methods - the base
@@ -93,11 +92,13 @@ public:
         */
 
     private:
+        JUCEApplication &app;
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
     };
 
 private:
     std::unique_ptr<MainWindow> mainWindow;
+    
 };
 
 //==============================================================================
