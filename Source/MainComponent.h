@@ -1,7 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-
+#include "ThumbnailComponent.hpp"
+#include "PlayheadComponent.hpp"
 //==============================================================================
 /*
  //more example changes
@@ -9,12 +10,12 @@
     your controls and content.
 */
 class MainComponent  : public juce::AudioAppComponent,
-                       private juce::ChangeListener,
-                       private juce::Timer
+                       private juce::ChangeListener
 {
 public:
     //==============================================================================
-    MainComponent() : state(stopped), thumbnailCache(5), thumbnail(512, formatManager, thumbnailCache)
+    MainComponent() : state(stopped), thumbnailCache(5), thumbnailComp(512, formatManager, thumbnailCache),
+        playhead(transportSource)
     {
         addAndMakeVisible (&openButton);
         openButton.setButtonText ("Open...");
@@ -34,12 +35,13 @@ public:
         
         formatManager.registerBasicFormats();
         
+        addAndMakeVisible(&thumbnailComp);
+        addAndMakeVisible(&playhead);
+        
         setSize (800, 600);
         transportSource.addChangeListener(this);
-        thumbnail.addChangeListener(this);
         setAudioChannels (0, 2);
         
-        startTimer(40);
         
     }
 
@@ -72,52 +74,19 @@ public:
     }
 
     //==============================================================================
-    void paint (juce::Graphics& g) override
-    {
-        juce::Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, getHeight() - 120);
-        if(thumbnail.getNumChannels() == 0){
-            paintIfNoFileLoaded(g, thumbnailBounds);
-        } else {
-            paintIfFileLoaded(g, thumbnailBounds);
-        }
-        
-    }
-    
-    void paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int> thumbnailBounds)
-    {
-        g.setColour(juce::Colours::darkgrey);
-        g.fillRect(thumbnailBounds);
-        g.setColour(juce::Colours::white);
-        g.drawFittedText("No File Loaded", thumbnailBounds, juce::Justification::centred, 1);
-    }
-    
-    void paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int> thumbnailBounds)
-    {
-        g.setColour(juce::Colours::darkgrey);
-        g.fillRect(thumbnailBounds);
-        g.setColour(juce::Colours::blue);
-        auto fileLength = (float) thumbnail.getTotalLength();
-        thumbnail.drawChannels(g,
-                               thumbnailBounds,
-                               0.0,
-                               fileLength,
-                               1.0f);
-        g.setColour(juce::Colours::green);
-        auto audioPosition = transportSource.getCurrentPosition();
-        auto drawPosition = (audioPosition / fileLength) * (float) thumbnailBounds.getWidth() + (float) thumbnailBounds.getX();
-        g.drawLine(drawPosition, (float) thumbnailBounds.getY(), drawPosition, thumbnailBounds.getBottom(), 2.0f);
-    }
 
     void resized() override
     {
         openButton.setBounds (10, 10, getWidth() - 20, 20);
         playButton.setBounds (10, 40, getWidth() - 20, 20);
         stopButton.setBounds (10, 70, getWidth() - 20, 20);
+        juce::Rectangle<int> thumbnailBounds (10, 100, getWidth() - 20, getHeight() - 120);
+        thumbnailComp.setBounds (thumbnailBounds);
+        playhead.setBounds (thumbnailBounds);
     }
     void changeListenerCallback(juce::ChangeBroadcaster* source) override
     {
         if (source == &transportSource) transportSourceChanged();
-        if (source == &thumbnail) thumbnailChanged();
     }
 
 
@@ -180,7 +149,7 @@ private:
                 std::unique_ptr<juce::AudioFormatReaderSource> newSource (new juce::AudioFormatReaderSource (reader, true));
                 transportSource.setSource (newSource.get(), 0, nullptr, reader->sampleRate);
                 playButton.setEnabled (true);
-                thumbnail.setSource(new juce::FileInputSource(file));
+                thumbnailComp.setFile(file);
                 readerSource.reset (newSource.release());
                 
             }
@@ -194,10 +163,7 @@ private:
     {
         changeState(stopping);
     }
-    void timerCallback() override
-    {
-        repaint();
-    }
+
     juce::TextButton openButton;
     juce::TextButton playButton;
     juce::TextButton stopButton;
@@ -206,7 +172,8 @@ private:
     juce::AudioFormatManager formatManager;
     juce::AudioTransportSource transportSource;
     juce::AudioThumbnailCache thumbnailCache;
-    juce::AudioThumbnail thumbnail;
+    ThumbnailComponent thumbnailComp;
+    PlayheadComponent playhead;
     //==============================================================================
     // Your private member variables go here...
 
