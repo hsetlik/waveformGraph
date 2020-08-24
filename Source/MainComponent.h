@@ -13,7 +13,7 @@ class MainComponent  : public juce::AudioAppComponent,
 {
 public:
     //==============================================================================
-    MainComponent() : state(stopped)
+    MainComponent() : state(stopped), thumbnailCache(5), thumbnail(512, formatManager, thumbnailCache)
     {
         addAndMakeVisible (&openButton);
         openButton.setButtonText ("Open...");
@@ -35,6 +35,7 @@ public:
         
         setSize (800, 600);
         transportSource.addChangeListener(this);
+        thumbnail.addChangeListener(this);
         setAudioChannels (0, 2);
         
     }
@@ -70,10 +71,33 @@ public:
     //==============================================================================
     void paint (juce::Graphics& g) override
     {
-        // (Our component is opaque, so we must completely fill the background with a solid colour)
-        g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-        // You can add your drawing code here!
+        juce::Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, getHeight() - 120);
+        if(thumbnail.getNumChannels() == 0){
+            paintIfNoFileLoaded(g, thumbnailBounds);
+        } else {
+            paintIfFileLoaded(g, thumbnailBounds);
+        }
+        
+    }
+    
+    void paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int> thumbnailBounds)
+    {
+        g.setColour(juce::Colours::darkgrey);
+        g.fillRect(thumbnailBounds);
+        g.setColour(juce::Colours::white);
+        g.drawFittedText("No File Loaded", thumbnailBounds, juce::Justification::centred, 1);
+    }
+    
+    void paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int> thumbnailBounds)
+    {
+        g.setColour(juce::Colours::darkgrey);
+        g.fillRect(thumbnailBounds);
+        g.setColour(juce::Colours::blue);
+        thumbnail.drawChannels(g,
+                               thumbnailBounds,
+                               0.0,
+                               thumbnail.getTotalLength(),
+                               1.0f);
     }
 
     void resized() override
@@ -85,6 +109,7 @@ public:
     void changeListenerCallback(juce::ChangeBroadcaster* source) override
     {
         if (source == &transportSource) transportSourceChanged();
+        if (source == &thumbnail) thumbnailChanged();
     }
 
 
@@ -127,6 +152,10 @@ private:
     {
         changeState (transportSource.isPlaying() ? playing : stopped);
     }
+    void thumbnailChanged()
+    {
+        repaint();
+    }
     void openButtonClicked()
     {
         juce::FileChooser chooser ("Select a Wave file to play...",
@@ -143,7 +172,9 @@ private:
                 std::unique_ptr<juce::AudioFormatReaderSource> newSource (new juce::AudioFormatReaderSource (reader, true));
                 transportSource.setSource (newSource.get(), 0, nullptr, reader->sampleRate);
                 playButton.setEnabled (true);
+                thumbnail.setSource(new juce::FileInputSource(file));
                 readerSource.reset (newSource.release());
+                
             }
         }
     }
@@ -162,6 +193,8 @@ private:
     transportState state;
     juce::AudioFormatManager formatManager;
     juce::AudioTransportSource transportSource;
+    juce::AudioThumbnailCache thumbnailCache;
+    juce::AudioThumbnail thumbnail;
     //==============================================================================
     // Your private member variables go here...
 
